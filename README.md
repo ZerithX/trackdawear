@@ -194,8 +194,3 @@ src/
 ├── modules/      Feature-based routes, schemas, dan services
 └── shared/       Error dan response helpers
 ```
-
-## Referensi dan Bantuan
-
-- Dokumentasi Bun, Hono, Drizzle ORM, Docker, dan official PostgreSQL image
-- AI digunakan untuk mendiskusikan scope proyek, struktur backend, konfigurasi Docker, pengujian, dan dokumentasi. Seluruh saran ditinjau, disesuaikan, dan diuji oleh penulis.
