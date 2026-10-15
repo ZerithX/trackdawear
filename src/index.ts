@@ -1,8 +1,9 @@
-import { app } from "./app"
-import { env } from "./config/env"
+import { app } from "./app";
+import { env } from "./config/env";
 
 export default {
-    port: env.PORT,
-    fetch: app.fetch,
+  port: env.PORT,
+  fetch: app.fetch,
 };
-console.log(`Backend running on port ${env.PORT}`)
+
+console.log(`TrackDaWear API running on port ${env.PORT}`);

@@ -1,7 +1,6 @@
 {
   "name": "trackdawear",
   "version": "1.0.0",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
@@ -16,9 +15,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
-    "drizzle-kit": "^0.31.11"
-  },
-  "peerDependencies": {
+    "drizzle-kit": "^0.31.11",
     "typescript": "^7.0.2"
   },
   "dependencies": {
@@ -28,5 +25,6 @@
     "hono": "^4.13.13",
     "postgres": "^3.4.9",
     "zod": "^4.6.5"
-  }
+  },
+  "module": "src/index.ts"
 }
