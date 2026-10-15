@@ -1,6 +1,6 @@
 # TrackDaWear API
 
-TrackDaWear adalah REST API untuk mencatat inventaris dan peminjaman peralatan organisasi. Aplikasi ini dibuat sebagai Tugas 1 Study Club Backend Intermediate dengan fokus pada Dockerfile, Docker Compose, integrasi API–database, dan persistensi data PostgreSQL.
+TrackDaWear adalah REST API untuk mencatat inventaris dan peminjaman peralatan organisasi.
 
 ## Tech Stack
 
