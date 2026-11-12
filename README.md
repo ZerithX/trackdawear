@@ -1,5 +1,7 @@
 # TrackDaWear API
 
+For Reviewer Task 2 Check From Lines 181
+
 TrackDaWear adalah REST API untuk mencatat inventaris dan peminjaman peralatan organisasi.
 
 ## Tech Stack
@@ -51,13 +53,13 @@ Lihat log API:
 docker compose logs -f api
 ```
 
-API tersedia di `http://localhost:3000`.
+API tersedia di `http://localhost:8080/api`.
 
 ## Service Compose
 
 - `db` menjalankan PostgreSQL dan menyimpan data pada named volume `postgres_data`.
 - `migrate` menunggu database sehat lalu menjalankan migration Drizzle.
-- `api` menunggu migration berhasil lalu menjalankan Hono di port 3000.
+- `api` menunggu migration berhasil lalu menjalankan Hono di port 3000. 
 
 API menggunakan hostname `db`, bukan `localhost`, untuk mengakses PostgreSQL melalui jaringan internal Compose.
 
@@ -148,18 +150,7 @@ curl -X POST http://localhost:3000/loans \
    curl http://localhost:3000/assets
    ```
 
-Data yang sama tetap tersedia karena PostgreSQL menggunakan named volume.
-
 > Jangan memakai `docker compose down -v` saat pengujian persistensi karena opsi `-v` menghapus volume dan seluruh data development.
-
-## Menjalankan Tanpa Container API
-
-```bash
-docker compose up -d db
-bun install
-bun run db:migrate
-bun run dev
-```
 
 Dalam mode ini `DATABASE_URL` menggunakan `localhost:5432`. Di dalam Compose, URL database dioverride agar menggunakan hostname `db`.
 
@@ -183,6 +174,80 @@ Untuk menghapus seluruh data development secara sengaja:
 ```bash
 docker compose down -v
 ```
+
+Data yang sama tetap tersedia karena PostgreSQL menggunakan named volume.
+
+
+## Nginx Gateway (Tugas 2)
+
+### Cara menjalankan
+```bash
+cp .env.example .env
+docker compose up -d --build
+docker compose ps
+```
+API diakses lewat `http://localhost:8080/api/...` (contoh: `/api/health`).
+
+### Bukti
+#### Load balancing
+```bash
+$ for i in 1 2 3 4 5 6; do curl -s -o /dev/null -D - localhost:8080/api/health | grep -i x-upstream; done
+X-Upstream: 172.22.0.4:3000
+X-Upstream: 172.22.0.3:3000
+X-Upstream: 172.22.0.5:3000
+X-Upstream: 172.22.0.4:3000
+X-Upstream: 172.22.0.3:3000
+X-Upstream: 172.22.0.5:3000
+```
+#### Rate limit
+```bash
+$ for i in $(seq 1 30); do curl -s -o /dev/null -w "%{http_code}\n" localhost:8080/api/health; done | sort | uniq -c
+     19 200
+     11 429
+```
+#### Header keamanan & gzip
+```bash
+$ curl -s -D - -o /dev/null -H "Accept-Encoding: gzip" localhost:8080/api/users
+HTTP/1.1 200 OK
+Server: nginx/1.31.8
+Date: Thu, 12 Nov 2026 15:11:53 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-Upstream: 172.22.0.3:3000
+Content-Encoding: gzip
+```
+#### Port backend & database tidak bisa diakses
+```bash
+$ docker compose ps
+NAME             IMAGE                   COMMAND                  SERVICE  CREATED          STATUS                    PORTS
+trackdawear-db   postgres:18-alpine      "docker-entrypoint.s…"   db  11 minutes ago   Up 11 minutes (healthy)   5432/tcp
+tugas1-api-1     trackdawear-api:local   "/usr/local/bin/dock…"   api  11 minutes ago   Up 11 minutes             3000/tcp
+tugas1-api-2     trackdawear-api:local   "/usr/local/bin/dock…"   api  11 minutes ago   Up 11 minutes             3000/tcp
+tugas1-api-3     trackdawear-api:local   "/usr/local/bin/dock…"   api  11 minutes ago   Up 11 minutes             3000/tcp
+tugas1-nginx-1   nginx:1.31.8-alpine     "/docker-entrypoint.…"   nginx  11 minutes ago   Up 11 minutes             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+
+$ curl -m 3 localhost:3000/health
+curl: (7) Failed to connect to localhost port 3000 after 2254 ms: Could not connect to server
+
+$ curl -m 3 localhost:5432
+curl: (7) Failed to connect to localhost port 5432 after 2256 ms: Could not connect to server
+```
+
+### Pertanyaan
+**(a) Kenapa upstream perlu zone?** 
+
+Karena zone ya sharing memori bersama biar semua proses worknya berbagi state upstream yang sama. Kalau dihapus, setiap work atau kerjanya bakal ngetrack statenya sendiri-sendiri dan fitur resolve gabakal work karena dia butuh zone.
+
+**(b) Kenapa limit_req_status 429?** 
+
+Ya karena 429 itu responsenya Too Many Requests. Tapi secara default emang nginx rejects pake response 503 Service Unavailable, yang dimana servernya rusak/broken bisa dibilang. Jadi ya harus di set ke 429 biar nanti monitoring logs dan dari sisi client juga bisa tau masalahnya apa saat pertamakali encounter.
+
+**(c) Kenapa backend & db tanpa ports?** 
+
+For security purpose, jadi backend dan db ga bisa ke "reach" dari host ataupun internet. Jadi untuk mengakses appnya harus melewati nginx dulu. Nginx menjangkau backendnya melalui docker compose internal network dan di case repo gwehj menggunakan nama service api, yang dimana docker dns (127.0.0.11) resolve ke IP replika
 
 ## Struktur Singkat
 
